@@ -22,3 +22,7 @@ From there, edit file paths appropriately.
 You must specify `OUTPUT_AND_TEMP_DIR_PATH` to use for saving temporary files, even if you elect not to save the final montage.
 
 Click Run!
+
+## Example
+
+![Cells in example montage](Example_Montage.jpg)
