@@ -25,4 +25,4 @@ Click Run!
 
 ## Example
 
-![Cells in example montage](Example_Montage.jpg)
+![Cells in example montage](example_montage.jpg)
