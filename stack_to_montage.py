@@ -1,30 +1,29 @@
 import os
 import math
+import re
 from array import array
 from ij import IJ, ImagePlus, ImageStack
 from ij.plugin import MontageMaker, RGBStackMerge
 from ij.gui import Overlay, Line, TextRoi
 from java.awt import Color
+from ij.gui import GenericDialog
 
-
-####### PARAMETERS #######
-INPUT_STACK_PATH = "/Users/..."
-OUTPUT_AND_TEMP_DIR_PATH = "/Users/..."
-SAVE_FINAL_MONTAGE = True
-#######
+# If desired, set default paths here.
+INPUT_STACK_PATH = ""
+OUTPUT_AND_TEMP_DIR_PATH = ""
 
 # TODO:
-# [ ] - Add user input for input and output paths?
+# [x] - Add user input for input and output paths?
 # [x] - Add scale bar to montage
 # [x] - Preserve original image name for saving montage
 # [ ] - Add control over order of channels in montage (by ordering stack)
 
 
-def double_split_and_montage(input_stack_path, output_dir_path):
+def double_split_and_montage():
     """Toplevel function for creating montage from xycz stack."""
+    input_stack_path, output_dir_path = get_file_paths()
+    print("Reading input file...")
     imp = IJ.openImage(input_stack_path)
-    input_file_name = os.path.splitext(os.path.basename(input_stack_path))[0]
-
     width = imp.getWidth()
     height = imp.getHeight()
     n_slices = imp.getNSlices()
@@ -32,12 +31,120 @@ def double_split_and_montage(input_stack_path, output_dir_path):
     pixel_width = imp.getCalibration().pixelWidth
     pixel_unit = imp.getCalibration().getUnit()
 
-    double_split_and_save(imp, n_slices, n_channels, pixel_width, pixel_unit)
+    slices_to_include, bool_save_final_montage = get_options(n_slices)
+
+    double_split_and_save(
+        imp,
+        n_slices,
+        n_channels,
+        pixel_width,
+        pixel_unit,
+        slices_to_include,
+        output_dir_path,
+    )
     stack_imp = read_and_stack(output_dir_path, width, height)
-    montage = make_montage(stack_imp, n_slices, n_channels)
+    montage = make_montage(
+        stack_imp=stack_imp,
+        n_slices=len(slices_to_include),
+        n_channels=n_channels,
+    )
     montage.show()
-    if SAVE_FINAL_MONTAGE:
-        save_png(montage, input_file_name + "_Montage")
+    print(bool_save_final_montage)
+    if bool_save_final_montage:
+        input_file_name = os.path.splitext(os.path.basename(input_stack_path))[0]
+        save_png(
+            imp=montage,
+            file_name=input_file_name + "_Montage",
+            output_dir=output_dir_path,
+        )
+    print("Done!")
+
+
+def get_file_paths():
+    """Get paths from user.
+
+    Useful docuemntation for dialog GUIs:
+    https://imagej.net/ij/developer/api/ij/ij/gui/GenericDialog.html
+
+    """
+
+    paths_dialog = GenericDialog("Set input and output paths")
+    paths_dialog.addFileField("Input file:", INPUT_STACK_PATH, 50)
+    paths_dialog.addDirectoryField("Output directory:", OUTPUT_AND_TEMP_DIR_PATH, 50)
+    paths_dialog.showDialog()
+
+    if paths_dialog.wasCanceled():
+        raise RuntimeError("User cancelled dialog")
+    input_file = paths_dialog.getNextString()
+    output_dir = paths_dialog.getNextString()
+    if not os.path.exists(input_file):
+        IJ.error("Input file does not exist.")
+        raise RuntimeError("Invalid input file")
+    if not os.path.exists(output_dir):
+        IJ.error("Output directory does not exist.")
+        raise RuntimeError("Invalid output directory")
+
+    return input_file, output_dir
+
+
+def get_options(n_slices):
+    """Get user input for which options
+
+    Which planes to include in montage and whether to save final montage.
+    """
+
+    options_dialog = GenericDialog("Choose montage options")
+    options_dialog.addMessage("Input file contains " + str(n_slices) + " z slices.")
+    options = ["All slices", "Only odd slices", "Custom (comma separated):"]
+    options_dialog.addRadioButtonGroup(
+        "Select slices to include in montage:",  # label
+        options,  # items
+        len(options),  # no of rows
+        1,  # no of columns
+        options[0],  # default item
+    )
+    options_dialog.addStringField(
+        "            ",  # label
+        "1,6,7,42",  # default text
+    )
+    options_dialog.addCheckbox("Save final montage", True)
+
+    options_dialog.showDialog()
+    if options_dialog.wasCanceled():
+        raise RuntimeError("User cancelled options dialog")
+
+    slices_to_include = options_dialog.getNextRadioButton()
+    custom_slices = options_dialog.getNextString()
+    slices_to_include = _format_slices_input(slices_to_include, custom_slices, n_slices)
+    bool_save_final_montage = options_dialog.getNextBoolean()
+
+    return slices_to_include, bool_save_final_montage
+
+
+def _format_slices_input(slices_option_selection, custom_slices, n_slices):
+    """Format user input for slices to include in montage from str to list."""
+
+    if slices_option_selection == "All slices":
+        return list(range(1, n_slices + 1))
+    elif slices_option_selection == "Only odd slices":
+        return list(range(1, n_slices + 1, 2))
+    elif slices_option_selection == "Custom (comma separated):":
+        if not re.match(r"^[\d, ]+$", custom_slices):
+            IJ.error(
+                """Invalid input: Custom slices field must only contain numbers, """
+                """spaces, and commas. Try again."""
+            )
+            raise ValueError("Invalid input for slices to include")
+        custom_slices = custom_slices.replace(" ", "")
+        custom_slices = custom_slices.split(",")
+        custom_slices = [int(s) for s in custom_slices if int(s) <= n_slices]
+        if custom_slices == []:
+            IJ.error(
+                """Invalid input: Custom slices field must contain at least one """
+                """valid number that is less than the number of slices. Try again."""
+            )
+            raise ValueError("Invalid input for slices to include")
+        return custom_slices
 
 
 def double_split_and_save(
@@ -46,6 +153,8 @@ def double_split_and_save(
     n_channels,
     pixel_width,
     pixel_unit,
+    slices_to_include,
+    output_dir,
 ):
     """Split stack by z and c and save as PNGs."""
     original_luts = imp.getLuts()
@@ -59,6 +168,8 @@ def double_split_and_save(
         )
     print("Processing " + str(n_slices) + " slices...")
     for z in range(1, n_slices + 1):
+        if z not in slices_to_include:
+            continue
         imp.setZ(z)
         channel_images = []
 
@@ -71,7 +182,7 @@ def double_split_and_save(
             )
             channel_imp = ImagePlus(channel_name, imp.getProcessor().duplicate())
             channel_imp.setLut(original_luts[c - 1])
-            save_png(imp=channel_imp, file_name=channel_name)
+            save_png(imp=channel_imp, file_name=channel_name, output_dir=output_dir)
 
             channel_images.append(channel_imp)
         channel_array = array(ImagePlus, channel_images)
@@ -79,7 +190,7 @@ def double_split_and_save(
         if z == 1:
             overlay_imp = add_scale_bar(overlay_imp, pixel_width, pixel_unit)
         overlay_name = "temp_All_Channel_Overlay_Slice_" + str(z).zfill(3)
-        save_png(imp=overlay_imp, file_name=overlay_name)
+        save_png(imp=overlay_imp, file_name=overlay_name, output_dir=output_dir)
 
 
 def read_and_stack(output_dir, width, height):
@@ -110,7 +221,9 @@ def read_and_stack(output_dir, width, height):
     return stack_imp
 
 
-def make_montage(stack_imp, n_slices, n_channels):
+def make_montage(
+    stack_imp, n_slices, n_channels
+):  # XXX adjust this to only look for the number of pngs saved (reduced by user-selected options)
     """Create montage from stack."""
     return MontageMaker().makeMontage2(
         stack_imp,  # imp
@@ -199,10 +312,10 @@ def calculate_scale_bar_length(pixel_width, imp_width):
     return scale_bar_len
 
 
-def save_png(imp, file_name):
+def save_png(imp, file_name, output_dir):
     """Save imp as PNG."""
-    output_path = os.path.join(OUTPUT_AND_TEMP_DIR_PATH, file_name + ".png")
+    output_path = os.path.join(output_dir, file_name + ".png")
     IJ.saveAs(imp, "PNG", output_path)
 
 
-double_split_and_montage(INPUT_STACK_PATH, OUTPUT_AND_TEMP_DIR_PATH)
+double_split_and_montage()

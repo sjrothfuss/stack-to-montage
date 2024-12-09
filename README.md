@@ -7,7 +7,7 @@ Also, it adds a scale bar!
 
 ## Before Running
 
-Use FIJI (or another tool) to crop image to desired size (`Image > Crop`), remove unwanted slices (`Image > Stacks > Delete Slice`), and save with LUTs applied (`Image > Adjust > Brightness/Contrast`).
+Use FIJI (or another tool) to crop image to desired size (`Image > Crop`) and save with LUTs applied (`Image > Adjust > Brightness/Contrast`).
 The script expects a `xycz` `.tif` or `.nd2`.
 In other words, a z-series with multiple color channels.
 
@@ -15,13 +15,11 @@ In other words, a z-series with multiple color channels.
 
 >NOTE: This script is designed to be run _**inside FIJI**_ not in a standard Python IDE.
 
-To add the script to FIJI, drag `stack_to_montage.py` into the FIJI Main Window.
-It will open in the FIJI script editor.
-From there, edit file paths appropriately.
-![FIJI script editor window](image.png)
-You must specify `OUTPUT_AND_TEMP_DIR_PATH` to use for saving temporary files, even if you elect not to save the final montage.
+1. Drag `stack_to_montage.py` into the FIJI Main Window and the script will open in the FIJI script editor.
+1. Click Run!
+1. Dialog boxes will open to ask you to select input file and output directory and select which slices to include in the montage.
 
-Click Run!
+![montage options dialog](montage_options.png)
 
 ## Example
 
