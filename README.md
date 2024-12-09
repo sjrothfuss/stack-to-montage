@@ -15,6 +15,7 @@ In other words, a z-series with multiple color channels.
 
 >NOTE: This script is designed to be run _**inside FIJI**_ not in a standard Python IDE.
 
+1. Download and install [FIJI](https://imagej.net/software/fiji/).
 1. Drag `stack_to_montage.py` into the FIJI Main Window and the script will open in the FIJI script editor.
 1. Click Run!
 1. Dialog boxes will open to ask you to select input file and output directory and select which slices to include in the montage.
