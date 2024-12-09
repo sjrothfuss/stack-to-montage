@@ -19,7 +19,8 @@ In other words, a z-series with multiple color channels.
 1. Click Run!
 1. Dialog boxes will open to ask you to select input file and output directory and select which slices to include in the montage.
 
-![montage options dialog](montage_options.png)
+![file and directory dialog](paths_dialog.png)
+![montage options dialog](options_dialog.png)
 
 ## Example
 
