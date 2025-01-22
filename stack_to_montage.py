@@ -49,7 +49,6 @@ def double_split_and_montage():
         n_channels=n_channels,
     )
     montage.show()
-    print(bool_save_final_montage)
     if bool_save_final_montage:
         input_file_name = os.path.splitext(os.path.basename(input_stack_path))[0]
         save_png(
