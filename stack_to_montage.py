@@ -125,9 +125,9 @@ def _format_slices_input(slices_option_selection, custom_slices, n_slices):
 
     if slices_option_selection == "All slices":
         return list(range(1, n_slices + 1))
-    elif slices_option_selection == "Only odd slices":
+    if slices_option_selection == "Only odd slices":
         return list(range(1, n_slices + 1, 2))
-    elif slices_option_selection == "Custom (comma separated):":
+    if slices_option_selection == "Custom (comma separated):":
         if not re.match(r"^[\d, ]+$", custom_slices):
             IJ.error(
                 """Invalid input: Custom slices field must only contain numbers, """
@@ -255,7 +255,8 @@ def add_scale_bar(
     if pixel_unit == "pixels":
         print("Warning! Image not spatially calibrated, cannot add scale bar.")
         return imp
-    elif pixel_unit == "micron":
+    
+    if pixel_unit == "micron":
         pixel_unit = "µm"[1:]  # Omitting Â character added by FIJI
 
     # Set variables
