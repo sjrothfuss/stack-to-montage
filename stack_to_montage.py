@@ -1,3 +1,5 @@
+"A module to create 2D montages from xyzc images."
+
 import os
 import math
 import re
