@@ -16,7 +16,9 @@ OUTPUT_AND_TEMP_DIR_PATH = ""
 # [x] - Add user input for input and output paths?
 # [x] - Add scale bar to montage
 # [x] - Preserve original image name for saving montage
-# [ ] - Add control over order of channels in montage (by ordering stack)
+# [ ] - Add control over order of channels in montage by ordering stack
+# [ ] - Adjust `make_montage()` to only look for the number of pngs 
+# saved (may be reduced by user-selected options)
 
 
 def double_split_and_montage():
@@ -220,9 +222,7 @@ def read_and_stack(output_dir, width, height):
     return stack_imp
 
 
-def make_montage(
-    stack_imp, n_slices, n_channels
-):  # XXX adjust this to only look for the number of pngs saved (reduced by user-selected options)
+def make_montage(stack_imp, n_slices, n_channels):
     """Create montage from stack."""
     return MontageMaker().makeMontage2(
         stack_imp,  # imp
