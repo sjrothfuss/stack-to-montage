@@ -73,7 +73,6 @@ def get_file_paths():
     paths_dialog.addFileField("Input file:", INPUT_STACK_PATH, 50)
     paths_dialog.addDirectoryField("Output directory:", OUTPUT_AND_TEMP_DIR_PATH, 50)
     paths_dialog.showDialog()
-
     if paths_dialog.wasCanceled():
         raise RuntimeError("User cancelled dialog")
     input_file = paths_dialog.getNextString()
@@ -205,7 +204,9 @@ def read_and_stack(output_dir, width, height):
         for f in os.listdir(output_dir)
         if f.endswith(".png") and f.startswith("temp_")
     ]
-    # Reverse sorts puts overlay on bottom of montage, may be asthetically preferred
+    # Forward sort is used to put the overlay as the top row of the
+    # montage. Reverse sort would put the overlay in the bottom row of
+    # the montage which may be asthetically preferred in some cases.
     png_file_names.sort(reverse=False)
     print("Montaging " + str(len(png_file_names)) + " panels...")
 
@@ -218,7 +219,6 @@ def read_and_stack(output_dir, width, height):
 
     stack_imp = ImagePlus("Reconstructed Color Stack", new_stack)
     stack_imp.setDimensions(1, len(png_file_names), 1)
-    # stack_imp.show() # for debugging
     return stack_imp
 
 
@@ -251,15 +251,13 @@ def add_scale_bar(
     https://forum.image.sc/t/automatic-scale-bar-in-fiji-imagej/60774.
     """
 
-    # Check image config
     if pixel_unit == "pixels":
         print("Warning! Image not spatially calibrated, cannot add scale bar.")
         return imp
-    
+
     if pixel_unit == "micron":
         pixel_unit = "µm"[1:]  # Omitting Â character added by FIJI
 
-    # Set variables
     imp_height = imp.getHeight()
     imp_width = imp.getWidth()
     if line_width == 0:
@@ -286,10 +284,12 @@ def add_scale_bar(
     text_roi = TextRoi(
         scale_bar_x,  # x position
         scale_bar_y - (line_width + font_size),  # y position
-        scale_bar_text,
+        scale_bar_text, # text
     )
     text_roi.setColor(Color.WHITE)
     text_roi.setFontSize(font_size)
+    # This option allows for printing the scale bar length instead of
+    # displaying it on the image in the future.
     if show_length:
         overlay.add(text_roi)
     else:
